@@ -22,7 +22,7 @@
     "require": {
         "php": ">=8.2",
         "ext-xmlwriter": "*",
-        "testo/inline": "^1.0@dev",
+        "testo/inline": "0.1 - 1",
         "testo/testo": "*"
     },
     "autoload": {
