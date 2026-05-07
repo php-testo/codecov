@@ -10,14 +10,24 @@ use Testo\Codecov\Result\FileCoverage;
 use Testo\Codecov\Result\LineStatus;
 
 /**
- * Generates a PHPUnit-style coverage XML report directory.
+ * Generates a directory-based XML coverage report (a.k.a. "coverage XML").
+ *
+ * Primary consumer in the Testo ecosystem is **Infection**: it reads the
+ * directory through `IndexXmlCoverageParser` / `XmlCoverageParser` to map
+ * each mutated line back to the tests that cover it. Without this report
+ * Infection can't narrow the test set per mutant and runs everything.
  *
  * Output layout:
  * - `<outputDir>/index.xml` — overview with one `<file href="…">` per source file.
- * - `<outputDir>/<relative>/<basename>.xml` — per-source-file coverage with `<covered by="…">`.
+ * - `<outputDir>/<relative>/<basename>.xml` — per-source-file coverage
+ *   with `<covered by="…">` annotations linking lines to test methods.
  *
- * The format matches the PHPUnit `--coverage-xml` directory layout consumed by Infection's
- * `Infection\TestFramework\Coverage\XmlReport\IndexXmlCoverageParser` / `XmlCoverageParser`.
+ * The conventional name for `<outputDir>` is `coverage-xml`, sibling to a
+ * `junit.xml` file under a shared parent (e.g. `build/coverage/coverage-xml`
+ * + `build/coverage/junit.xml`). That layout is what Infection's
+ * `--coverage=<dir>` flag expects when reusing reports between CI steps.
+ *
+ * Distinct from JUnit XML (test-results format, see {@see \Testo\Output\JUnit\JUnitPlugin}).
  *
  * @api
  */
