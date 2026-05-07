@@ -53,7 +53,7 @@ final readonly class CodecovPlugin implements PluginConfigurator
     public function __construct(
         private CoverageLevel $level = CoverageLevel::Line,
         private CoverageMode $collect = CoverageMode::IfAvailable,
-        array $testTypes = [TestType::Test],
+        array $testTypes = [TestType::Test, TestType::TestInline],
         array $reports = [],
     ) {
         $this->testTypes = \array_map(
