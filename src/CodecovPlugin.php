@@ -103,10 +103,34 @@ final readonly class CodecovPlugin implements PluginConfigurator
         return match (true) {
             $mode === CoverageMode::Never => null,
             \extension_loaded('pcov') => PcovDriver::create($src),
-            \extension_loaded('xdebug') => XdebugDriver::create($src),
+            self::isXdebugCoverageEnabled() => XdebugDriver::create($src),
             $mode === CoverageMode::Always => throw new CoverageDriverNotAvailable(),
             default => null,
         };
+    }
+
+    /**
+     * Xdebug must be both loaded and running with `coverage` in its mode list;
+     * otherwise `xdebug_start_code_coverage()` is a no-op and reports come back empty.
+     */
+    private static function isXdebugCoverageEnabled(): bool
+    {
+        if (!\extension_loaded('xdebug')) {
+            return false;
+        }
+
+        $mode = \ini_get('xdebug.mode');
+        if (!\is_string($mode) || $mode === '') {
+            return false;
+        }
+
+        foreach (\explode(',', $mode) as $part) {
+            if (\trim($part) === 'coverage') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
