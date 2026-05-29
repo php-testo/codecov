@@ -8,6 +8,8 @@ use Internal\Destroy\Destroyable;
 use Testo\Codecov\Result\CoverageResult;
 use Testo\Codecov\Report\CoverageReport;
 use Testo\Core\Context\SuiteResult;
+use Testo\Core\Context\TestResult;
+use Testo\Data\MultipleResult;
 
 /**
  * Mutable aggregate that collects coverage data across test suites.
@@ -36,12 +38,36 @@ final readonly class CoverageCollector implements Destroyable
         $r = $this->cache->value;
         foreach ($suiteResult as $caseResult) {
             foreach ($caseResult as $testResult) {
-                $coverage = $testResult->getAttribute(CoverageResult::class);
-                $coverage instanceof CoverageResult and $r = $r->merge($coverage);
+                foreach (self::collectCoverage($testResult) as $coverage) {
+                    $r = $r->merge($coverage);
+                }
             }
         }
 
         $this->cache->value = $r;
+    }
+
+    /**
+     * Yields coverage from a test result and, for aggregate results (data providers,
+     * inline tests), from every nested per-run result.
+     *
+     * Coverage is collected by the inner {@see \Testo\Codecov\Internal\Middleware\CoverageTestInterceptor},
+     * so for data-driven tests it lives on the per-data-set child results rather than on the
+     * {@see MultipleResult} wrapper returned for the test as a whole.
+     *
+     * @return iterable<CoverageResult>
+     */
+    private static function collectCoverage(TestResult $testResult): iterable
+    {
+        $coverage = $testResult->getAttribute(CoverageResult::class);
+        $coverage instanceof CoverageResult and yield $coverage;
+
+        $multiple = $testResult->getAttribute(MultipleResult::class);
+        if ($multiple instanceof MultipleResult) {
+            foreach ($multiple->results as $nested) {
+                yield from self::collectCoverage($nested);
+            }
+        }
     }
 
     public function destroy(): void
