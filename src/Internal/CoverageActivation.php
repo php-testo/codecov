@@ -133,10 +133,28 @@ final class CoverageActivation
     }
 
     /**
+     * Enforces the merged {@see CoverageMode::Always} requirement: throws when coverage is mandatory
+     * (e.g. a bare `--coverage`) but no driver is available.
+     *
+     * Kept separate from {@see contribute()} on purpose. It must be invoked from the plugin's
+     * `configure()` — i.e. during `applyPlugins()`, *outside* the event dispatcher — because the
+     * dispatcher swallows listener exceptions, so a throw deferred to {@see onSessionStarting()}
+     * would be silently ignored and the run would pass with a misleading exit code. Idempotent: safe
+     * to call after every contribution (a later plugin escalating the mode to `Always` is caught too).
+     */
+    public function verifyDriverRequirement(): void
+    {
+        $this->mode === CoverageMode::Always && $this->driver === null and throw new CoverageDriverNotAvailable();
+    }
+
+    /**
      * Single wiring point. Applies the merged level to the eagerly-created driver and registers the
-     * interceptor and collector. Stays inert when nothing was contributed; honors {@see
-     * CoverageMode::Always} by failing loudly when no driver is available, and skips silently
-     * otherwise (soft activation).
+     * interceptor and collector. Stays inert when there is nothing to write.
+     *
+     * The {@see CoverageMode::Always} "no driver" failure is raised earlier, in {@see
+     * verifyDriverRequirement()} during plugin configuration, where the exception can actually abort
+     * the run — so by the time this runs a non-null driver is guaranteed whenever the mode is
+     * `Always`. An `IfAvailable` run with no driver skips silently here (soft activation).
      */
     public function onSessionStarting(): void
     {
@@ -146,7 +164,6 @@ final class CoverageActivation
         $this->wired = true;
 
         if ($this->driver === null) {
-            $this->mode === CoverageMode::Always and throw new CoverageDriverNotAvailable();
             return;
         }
 

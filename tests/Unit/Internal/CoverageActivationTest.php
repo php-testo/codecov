@@ -10,12 +10,15 @@ use Testo\Assert;
 use Testo\Codecov\Config\CoverageLevel;
 use Testo\Codecov\Config\CoverageMode;
 use Testo\Codecov\Covers;
+use Testo\Codecov\Exception\CoverageDriverNotAvailable;
 use Testo\Codecov\Internal\CoverageActivation;
 use Testo\Codecov\Internal\CoverageInput;
 use Testo\Codecov\Report\CloverReport;
 use Testo\Codecov\Report\CoverageReport;
 use Testo\Common\EventListenerCollector;
+use Testo\Expect;
 use Testo\Test;
+use Tests\Codecov\Stub\SpyDriver;
 
 /**
  * Exercises the env-independent merge math of the coordinator (level/mode/testTypes/reports and the
@@ -109,6 +112,41 @@ final class CoverageActivationTest
         Assert::true(self::read($activation, 'driverResolved'));
     }
 
+    /**
+     * `Always` (a bare `--coverage`) is a hard requirement: with no driver resolved, the check must
+     * throw so the run aborts. This is the bit the event dispatcher would otherwise swallow, hence it
+     * lives outside `onSessionStarting()` and is exercised directly here.
+     */
+    public function verifyDriverRequirementThrowsWhenAlwaysWithoutDriver(): never
+    {
+        $activation = self::createActivation();
+        self::write($activation, 'mode', CoverageMode::Always);
+
+        Expect::exception(CoverageDriverNotAvailable::class);
+
+        $activation->verifyDriverRequirement();
+    }
+
+    public function verifyDriverRequirementPassesWhenAlwaysWithDriver(): void
+    {
+        $activation = self::createActivation();
+        self::write($activation, 'mode', CoverageMode::Always);
+        self::write($activation, 'driver', new SpyDriver());
+
+        $activation->verifyDriverRequirement();
+
+        Assert::same(self::read($activation, 'mode'), CoverageMode::Always);
+    }
+
+    public function verifyDriverRequirementIgnoresIfAvailableWithoutDriver(): void
+    {
+        $activation = self::createActivation();
+
+        $activation->verifyDriverRequirement();
+
+        Assert::same(self::read($activation, 'driver'), null);
+    }
+
     private static function createActivation(): CoverageActivation
     {
         return new CoverageActivation(self::container());
@@ -126,6 +164,12 @@ final class CoverageActivationTest
     {
         $ref = new \ReflectionProperty(CoverageActivation::class, $property);
         return $ref->getValue($activation);
+    }
+
+    private static function write(CoverageActivation $activation, string $property, mixed $value): void
+    {
+        $ref = new \ReflectionProperty(CoverageActivation::class, $property);
+        $ref->setValue($activation, $value);
     }
 
     /**

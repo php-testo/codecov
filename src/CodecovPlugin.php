@@ -104,12 +104,18 @@ final readonly class CodecovPlugin implements PluginConfigurator
         $reports = [...$this->reports, ...$activation->claimCliReports($input)];
 
         // Soft activation: with nothing to write, stay inert. This is how the shadow default with
-        // no CLI flags configured contributes nothing.
-        if ($reports === []) {
+        // no CLI flags configured contributes nothing. `Always` (e.g. a bare `--coverage`) still
+        // contributes so the driver requirement is enforced even when no report is requested.
+        if ($reports === [] && $mode !== CoverageMode::Always) {
             return;
         }
 
         $activation->contribute($this->level, $this->testTypes, $reports, $mode);
+
+        // Enforce `Always` here, while still in the configuration phase (outside the event
+        // dispatcher), so a missing driver aborts the run with a non-zero exit instead of being
+        // swallowed by the dispatcher when `onSessionStarting()` wires up.
+        $activation->verifyDriverRequirement();
     }
 
     private static function createActivation(Container $container): CoverageActivation
