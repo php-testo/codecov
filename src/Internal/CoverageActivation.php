@@ -209,8 +209,15 @@ final class CoverageActivation
     }
 
     /**
-     * Xdebug must be both loaded and running with `coverage` in its mode list;
-     * otherwise `xdebug_start_code_coverage()` is a no-op and reports come back empty.
+     * True when Xdebug is loaded and `coverage` is among its active modes; otherwise
+     * `xdebug_start_code_coverage()` is a no-op and reports come back empty.
+     *
+     * `xdebug_info('mode')` (Xdebug ≥ 3.1) is the single source of truth: it returns the modes Xdebug
+     * actually resolved across the `xdebug.mode` ini setting, the `-d xdebug.mode=...` CLI flag, and
+     * the `XDEBUG_MODE` environment variable — so we don't replicate Xdebug's precedence by hand.
+     * Reading `ini_get('xdebug.mode')` directly misses the env override (it is not reflected there),
+     * which is exactly how `composer infect` and IDE coverage runners enable it on top of a different
+     * ini/CLI mode.
      */
     private static function isXdebugCoverageEnabled(): bool
     {
@@ -218,18 +225,8 @@ final class CoverageActivation
             return false;
         }
 
-        $mode = \ini_get('xdebug.mode');
-        if (!\is_string($mode) || $mode === '') {
-            return false;
-        }
-
-        foreach (\explode(',', $mode) as $part) {
-            if (\trim($part) === 'coverage') {
-                return true;
-            }
-        }
-
-        return false;
+        $modes = xdebug_info('mode');
+        return \is_array($modes) && \in_array('coverage', $modes, true);
     }
 
     /**
