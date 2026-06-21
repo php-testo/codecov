@@ -230,7 +230,7 @@ final class PhpUnitXmlReportTest
 
     private static function tmpDir(): string
     {
-        $dir = \sys_get_temp_dir() . '/testo_phpunit_xml_' . \uniqid();
+        $dir = \dirname(__DIR__, 2) . '/runtime/testo_phpunit_xml_' . \uniqid();
         \mkdir($dir, 0o755, true);
 
         return $dir;

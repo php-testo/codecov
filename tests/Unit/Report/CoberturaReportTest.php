@@ -20,19 +20,16 @@ final class CoberturaReportTest
 {
     public function generatesValidXml(): void
     {
-        // Arrange
         $result = new CoverageResult([
             '/project/src/Foo.php' => new FileCoverage('/project/src/Foo.php', [
                 5 => new LineCoverage(5, LineStatus::Executed),
                 6 => new LineCoverage(6, LineStatus::NotExecuted),
             ]),
         ]);
-        $path = \sys_get_temp_dir() . '/testo_cobertura_' . \uniqid() . '.xml';
+        $path = self::tmpPath();
 
-        // Act
         (new CoberturaReport($path))->generate($result->withSourceRoot('/project'));
 
-        // Assert
         $xml = \simplexml_load_file($path);
         Assert::notSame($xml, false);
         Assert::same((string) $xml['version'], '0.4');
@@ -44,7 +41,6 @@ final class CoberturaReportTest
 
     public function groupsFilesByPackage(): void
     {
-        // Arrange
         $result = new CoverageResult([
             '/project/src/Core/Foo.php' => new FileCoverage('/project/src/Core/Foo.php', [
                 5 => new LineCoverage(5, LineStatus::Executed),
@@ -56,12 +52,10 @@ final class CoberturaReportTest
                 3 => new LineCoverage(3, LineStatus::NotExecuted),
             ]),
         ]);
-        $path = \sys_get_temp_dir() . '/testo_cobertura_' . \uniqid() . '.xml';
+        $path = self::tmpPath();
 
-        // Act
         (new CoberturaReport($path))->generate($result->withSourceRoot('/project'));
 
-        // Assert
         $xml = \simplexml_load_file($path);
         $packages = $xml->packages->package;
         Assert::count($packages, 2);
@@ -71,18 +65,15 @@ final class CoberturaReportTest
 
     public function relativeFilenames(): void
     {
-        // Arrange
         $result = new CoverageResult([
             '/project/src/Foo.php' => new FileCoverage('/project/src/Foo.php', [
                 5 => new LineCoverage(5, LineStatus::Executed),
             ]),
         ]);
-        $path = \sys_get_temp_dir() . '/testo_cobertura_' . \uniqid() . '.xml';
+        $path = self::tmpPath();
 
-        // Act
         (new CoberturaReport($path))->generate($result->withSourceRoot('/project'));
 
-        // Assert
         $xml = \simplexml_load_file($path);
         $class = $xml->packages->package->classes->class;
         Assert::same((string) $class['filename'], 'src/Foo.php');
@@ -93,7 +84,6 @@ final class CoberturaReportTest
 
     public function branchDataFillsRates(): void
     {
-        // Arrange — file with branch data
         $result = new CoverageResult([
             '/src/Foo.php' => new FileCoverage('/src/Foo.php', [
                 5 => new LineCoverage(5, LineStatus::Executed),
@@ -107,12 +97,10 @@ final class CoberturaReportTest
                 ]),
             ]),
         ]);
-        $path = \sys_get_temp_dir() . '/testo_cobertura_' . \uniqid() . '.xml';
+        $path = self::tmpPath();
 
-        // Act
         (new CoberturaReport($path))->generate($result->withSourceRoot('/'));
 
-        // Assert
         $xml = \simplexml_load_file($path);
 
         // Branch rate should be 0.5 (1 of 2 out_hit)
@@ -138,23 +126,30 @@ final class CoberturaReportTest
 
     public function noBranchDataProducesZeroBranchRate(): void
     {
-        // Arrange
         $result = new CoverageResult([
             '/src/Foo.php' => new FileCoverage('/src/Foo.php', [
                 5 => new LineCoverage(5, LineStatus::Executed),
             ]),
         ]);
-        $path = \sys_get_temp_dir() . '/testo_cobertura_' . \uniqid() . '.xml';
+        $path = self::tmpPath();
 
-        // Act
         (new CoberturaReport($path))->generate($result->withSourceRoot('/'));
 
-        // Assert
         $xml = \simplexml_load_file($path);
         Assert::same((string) $xml['branch-rate'], '0');
         Assert::same((string) $xml['branches-covered'], '0');
         Assert::same((string) $xml['branches-valid'], '0');
 
         \unlink($path);
+    }
+
+    /**
+     * Git-ignored scratch path inside this module's tests. Avoids
+     * `sys_get_temp_dir()`, whose value can be a non-Windows path under some
+     * agent runners and breaks `mkdir()`.
+     */
+    private static function tmpPath(): string
+    {
+        return \dirname(__DIR__, 2) . '/runtime/testo_cobertura_' . \uniqid() . '.xml';
     }
 }

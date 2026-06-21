@@ -22,15 +22,12 @@ final class CoverageFilterTest
 {
     public function enumCoversAllLines(): void
     {
-        // Arrange
         $ref = new \ReflectionEnum(TargetEnum::class);
         $file = \str_replace('\\', '/', $ref->getFileName());
         $coverage = self::fullCoverage($file, $ref->getStartLine(), $ref->getEndLine());
 
-        // Act
         $result = CoverageFilter::apply($coverage, [new Covers(TargetEnum::class)]);
 
-        // Assert
         Assert::true(isset($result->files[$file]));
         Assert::same(
             \count($result->files[$file]->lines),
@@ -40,18 +37,15 @@ final class CoverageFilterTest
 
     public function enumCoversSpecificMethod(): void
     {
-        // Arrange
         $ref = new \ReflectionMethod(TargetEnum::class, 'label');
         $file = \str_replace('\\', '/', $ref->getFileName());
         $enumRef = new \ReflectionEnum(TargetEnum::class);
         $coverage = self::fullCoverage($file, $enumRef->getStartLine(), $enumRef->getEndLine());
 
-        // Act
         $result = CoverageFilter::apply($coverage, [
             new Covers(TargetEnum::class, 'label'),
         ]);
 
-        // Assert
         Assert::true(isset($result->files[$file]));
 
         foreach ($result->files[$file]->lines as $line => $_) {
@@ -64,33 +58,27 @@ final class CoverageFilterTest
 
     public function enumStaticMethodCovered(): void
     {
-        // Arrange
         $ref = new \ReflectionMethod(TargetEnum::class, 'fromLabel');
         $file = \str_replace('\\', '/', $ref->getFileName());
         $enumRef = new \ReflectionEnum(TargetEnum::class);
         $coverage = self::fullCoverage($file, $enumRef->getStartLine(), $enumRef->getEndLine());
 
-        // Act
         $result = CoverageFilter::apply($coverage, [
             new Covers(TargetEnum::class, 'fromLabel'),
         ]);
 
-        // Assert
         Assert::true(isset($result->files[$file]));
         Assert::true(\count($result->files[$file]->lines) > 0);
     }
 
     public function traitCoversAllLines(): void
     {
-        // Arrange
         $ref = new \ReflectionClass(TargetTrait::class);
         $file = \str_replace('\\', '/', $ref->getFileName());
         $coverage = self::fullCoverage($file, $ref->getStartLine(), $ref->getEndLine());
 
-        // Act
         $result = CoverageFilter::apply($coverage, [new Covers(TargetTrait::class)]);
 
-        // Assert
         Assert::true(isset($result->files[$file]));
         Assert::same(
             \count($result->files[$file]->lines),
@@ -100,18 +88,15 @@ final class CoverageFilterTest
 
     public function traitCoversSpecificMethod(): void
     {
-        // Arrange
         $ref = new \ReflectionMethod(TargetTrait::class, 'greet');
         $file = \str_replace('\\', '/', $ref->getFileName());
         $traitRef = new \ReflectionClass(TargetTrait::class);
         $coverage = self::fullCoverage($file, $traitRef->getStartLine(), $traitRef->getEndLine());
 
-        // Act
         $result = CoverageFilter::apply($coverage, [
             new Covers(TargetTrait::class, 'greet'),
         ]);
 
-        // Assert
         Assert::true(isset($result->files[$file]));
 
         foreach ($result->files[$file]->lines as $line => $_) {
@@ -124,18 +109,15 @@ final class CoverageFilterTest
 
     public function classPrivateMethodCovered(): void
     {
-        // Arrange
         $ref = new \ReflectionMethod(TargetClassA::class, 'internalHelper');
         $file = \str_replace('\\', '/', $ref->getFileName());
         $classRef = new \ReflectionClass(TargetClassA::class);
         $coverage = self::fullCoverage($file, $classRef->getStartLine(), $classRef->getEndLine());
 
-        // Act
         $result = CoverageFilter::apply($coverage, [
             new Covers(TargetClassA::class, 'internalHelper'),
         ]);
 
-        // Assert
         Assert::true(isset($result->files[$file]));
 
         foreach ($result->files[$file]->lines as $line => $_) {
@@ -148,21 +130,18 @@ final class CoverageFilterTest
 
     public function classStillWorks(): void
     {
-        // Arrange
         $ref = new \ReflectionClass(TargetClassA::class);
         $file = \str_replace('\\', '/', $ref->getFileName());
         $coverage = self::fullCoverage($file, $ref->getStartLine(), $ref->getEndLine());
 
-        // Act
         $result = CoverageFilter::apply($coverage, [new Covers(TargetClassA::class)]);
 
-        // Assert
         Assert::true(isset($result->files[$file]));
     }
 
     public function multipleCoversCollectsAllTargets(): void
     {
-        // Arrange — two classes in different files
+        // Two classes in different files.
         $refA = new \ReflectionClass(TargetClassA::class);
         $fileA = \str_replace('\\', '/', $refA->getFileName());
 
@@ -174,20 +153,19 @@ final class CoverageFilterTest
             $fileB => new FileCoverage($fileB, self::lineRange($refB->getStartLine(), $refB->getEndLine())),
         ]);
 
-        // Act
         $result = CoverageFilter::apply($coverage, [
             new Covers(TargetClassA::class),
             new Covers(TargetClassB::class),
         ]);
 
-        // Assert — both files present
+        // Both files present.
         Assert::true(isset($result->files[$fileA]));
         Assert::true(isset($result->files[$fileB]));
     }
 
     public function multipleCoversMixedTypes(): void
     {
-        // Arrange — class, trait, enum across different files
+        // Class, trait, enum across different files.
         $refClass = new \ReflectionClass(TargetClassA::class);
         $fileClass = \str_replace('\\', '/', $refClass->getFileName());
 
@@ -203,14 +181,13 @@ final class CoverageFilterTest
             $fileEnum => new FileCoverage($fileEnum, self::lineRange($refEnum->getStartLine(), $refEnum->getEndLine())),
         ]);
 
-        // Act
         $result = CoverageFilter::apply($coverage, [
             new Covers(TargetClassA::class),
             new Covers(TargetTrait::class),
             new Covers(TargetEnum::class),
         ]);
 
-        // Assert — all three files present
+        // All three files present.
         Assert::true(isset($result->files[$fileClass]));
         Assert::true(isset($result->files[$fileTrait]));
         Assert::true(isset($result->files[$fileEnum]));
@@ -218,20 +195,19 @@ final class CoverageFilterTest
 
     public function multipleCoversMethodsInSameFile(): void
     {
-        // Arrange — two methods from the same enum
+        // Two methods from the same enum.
         $refLabel = new \ReflectionMethod(TargetEnum::class, 'label');
         $refFromLabel = new \ReflectionMethod(TargetEnum::class, 'fromLabel');
         $enumRef = new \ReflectionEnum(TargetEnum::class);
         $file = \str_replace('\\', '/', $enumRef->getFileName());
         $coverage = self::fullCoverage($file, $enumRef->getStartLine(), $enumRef->getEndLine());
 
-        // Act
         $result = CoverageFilter::apply($coverage, [
             new Covers(TargetEnum::class, 'label'),
             new Covers(TargetEnum::class, 'fromLabel'),
         ]);
 
-        // Assert — file present, lines from both methods included
+        // File present, lines from both methods included.
         Assert::true(isset($result->files[$file]));
 
         $lines = \array_keys($result->files[$file]->lines);
@@ -251,13 +227,10 @@ final class CoverageFilterTest
 
     public function emptyTargetsReturnEmpty(): void
     {
-        // Arrange
         $coverage = new CoverageResult(['foo.php' => new FileCoverage('foo.php', [1 => new LineCoverage(1, LineStatus::Executed)])]);
 
-        // Act
         $result = CoverageFilter::apply($coverage, []);
 
-        // Assert
         Assert::same($result->files, []);
     }
 

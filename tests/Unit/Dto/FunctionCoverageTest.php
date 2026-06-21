@@ -29,14 +29,11 @@ final class FunctionCoverageTest
             new PathCoverage([0, 7], hit: true),
         ]);
 
-        // Act
         $merged = $a->merge($b);
 
-        // Assert branches
         Assert::true($merged->branches[0]->hit);
         Assert::same($merged->branches[0]->outHit, [true, true]);
 
-        // Assert paths
         Assert::true($merged->paths[0]->hit);
         Assert::true($merged->paths[1]->hit);
     }

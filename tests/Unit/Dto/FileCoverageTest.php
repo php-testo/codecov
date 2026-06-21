@@ -39,10 +39,8 @@ final class FileCoverageTest
             8 => new LineCoverage(8, LineStatus::Dead),
         ]);
 
-        // Act
         $merged = $a->merge($b);
 
-        // Assert
         Assert::same($merged->lines[5]->status, LineStatus::Executed);
         Assert::same($merged->lines[6]->status, LineStatus::Executed);
         Assert::same($merged->lines[7]->status, LineStatus::NotExecuted);

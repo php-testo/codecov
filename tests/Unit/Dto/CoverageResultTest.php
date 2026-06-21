@@ -26,10 +26,8 @@ final class CoverageResultTest
             '/src/Bar.php' => [10 => 1],
         ];
 
-        // Act
         $result = CoverageResult::fromRawData($raw);
 
-        // Assert
         Assert::count($result->files, 2);
         Assert::same($result->files['/src/Foo.php']->lines[5]->status, LineStatus::Executed);
         Assert::same($result->files['/src/Foo.php']->lines[6]->status, LineStatus::NotExecuted);
@@ -86,14 +84,11 @@ final class CoverageResultTest
             ],
         ];
 
-        // Act
         $result = CoverageResult::fromRawData($raw);
 
-        // Assert lines
         Assert::same($result->files['/src/Foo.php']->lines[5]->status, LineStatus::Executed);
         Assert::same($result->files['/src/Foo.php']->lines[6]->status, LineStatus::NotExecuted);
 
-        // Assert functions
         $functions = $result->files['/src/Foo.php']->functions;
         Assert::count($functions, 1);
 

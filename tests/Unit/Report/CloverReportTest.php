@@ -17,7 +17,6 @@ final class CloverReportTest
 {
     public function generatesValidXml(): void
     {
-        // Arrange
         $result = new CoverageResult([
             '/src/Foo.php' => new FileCoverage('/src/Foo.php', [
                 5 => new LineCoverage(5, LineStatus::Executed),
@@ -25,12 +24,10 @@ final class CloverReportTest
                 7 => new LineCoverage(7, LineStatus::Dead),
             ]),
         ]);
-        $path = \sys_get_temp_dir() . '/testo_clover_' . \uniqid() . '.xml';
+        $path = self::tmpPath();
 
-        // Act
         (new CloverReport($path, 'TestProject'))->generate($result);
 
-        // Assert
         $xml = \simplexml_load_file($path);
         Assert::notSame($xml, false);
         Assert::same((string) $xml['generated'] !== '', true);
@@ -41,7 +38,6 @@ final class CloverReportTest
 
     public function countsStatementsCorrectly(): void
     {
-        // Arrange
         $result = new CoverageResult([
             '/src/Foo.php' => new FileCoverage('/src/Foo.php', [
                 5 => new LineCoverage(5, LineStatus::Executed),
@@ -50,12 +46,10 @@ final class CloverReportTest
                 8 => new LineCoverage(8, LineStatus::Dead),
             ]),
         ]);
-        $path = \sys_get_temp_dir() . '/testo_clover_' . \uniqid() . '.xml';
+        $path = self::tmpPath();
 
-        // Act
         (new CloverReport($path))->generate($result);
 
-        // Assert
         $xml = \simplexml_load_file($path);
         $metrics = $xml->project->metrics;
         Assert::same((string) $metrics['files'], '1');
@@ -67,13 +61,10 @@ final class CloverReportTest
 
     public function emptyResultProducesEmptyReport(): void
     {
-        // Arrange
-        $path = \sys_get_temp_dir() . '/testo_clover_' . \uniqid() . '.xml';
+        $path = self::tmpPath();
 
-        // Act
         (new CloverReport($path))->generate(new CoverageResult());
 
-        // Assert
         $xml = \simplexml_load_file($path);
         Assert::same((string) $xml->project->metrics['files'], '0');
         Assert::same((string) $xml->project->metrics['statements'], '0');
@@ -83,19 +74,16 @@ final class CloverReportTest
 
     public function writesLineElements(): void
     {
-        // Arrange
         $result = new CoverageResult([
             '/src/Foo.php' => new FileCoverage('/src/Foo.php', [
                 10 => new LineCoverage(10, LineStatus::Executed),
                 20 => new LineCoverage(20, LineStatus::NotExecuted),
             ]),
         ]);
-        $path = \sys_get_temp_dir() . '/testo_clover_' . \uniqid() . '.xml';
+        $path = self::tmpPath();
 
-        // Act
         (new CloverReport($path))->generate($result);
 
-        // Assert
         $xml = \simplexml_load_file($path);
         $lines = $xml->project->file->line;
         Assert::count($lines, 2);
@@ -105,5 +93,15 @@ final class CloverReportTest
         Assert::same((string) $lines[1]['count'], '0');
 
         \unlink($path);
+    }
+
+    /**
+     * Git-ignored scratch path inside this module's tests. Avoids
+     * `sys_get_temp_dir()`, whose value can be a non-Windows path under some
+     * agent runners and breaks `mkdir()`.
+     */
+    private static function tmpPath(): string
+    {
+        return \dirname(__DIR__, 2) . '/runtime/testo_clover_' . \uniqid() . '.xml';
     }
 }

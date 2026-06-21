@@ -27,7 +27,7 @@ final class CoversFilteringTest
 {
     public function coversClassFiltersToTargetFileOnly(): void
     {
-        // Arrange — driver returns coverage for both target files
+        // Driver returns coverage for both target files.
         $refA = new \ReflectionClass(TargetClassA::class);
         $refB = new \ReflectionClass(TargetClassB::class);
         $fileA = $refA->getFileName();
@@ -46,10 +46,8 @@ final class CoversFilteringTest
         $info = self::makeTestInfo(CoveredByAttribute::class, 'testCoversA');
         $next = static fn(TestInfo $i): TestResult => new TestResult($i, Status::Passed);
 
-        // Act
         $result = $interceptor->runTest($info, $next);
 
-        // Assert
         $coverage = $result->getAttribute(CoverageResult::class);
         Assert::instanceOf($coverage, CoverageResult::class);
         Assert::count($coverage->files, 1);
@@ -59,7 +57,6 @@ final class CoversFilteringTest
 
     public function multipleCoversKeepsAllTargetFiles(): void
     {
-        // Arrange
         $refA = new \ReflectionClass(TargetClassA::class);
         $refB = new \ReflectionClass(TargetClassB::class);
         $fileA = $refA->getFileName();
@@ -76,10 +73,8 @@ final class CoversFilteringTest
         $info = self::makeTestInfo(CoveredByAttribute::class, 'testCoversBoth');
         $next = static fn(TestInfo $i): TestResult => new TestResult($i, Status::Passed);
 
-        // Act
         $result = $interceptor->runTest($info, $next);
 
-        // Assert
         $coverage = $result->getAttribute(CoverageResult::class);
         Assert::instanceOf($coverage, CoverageResult::class);
         Assert::count($coverage->files, 2);
@@ -90,7 +85,6 @@ final class CoversFilteringTest
 
     public function coversMethodFiltersToMethodLinesOnly(): void
     {
-        // Arrange
         $fileA = (new \ReflectionClass(TargetClassA::class))->getFileName();
         $methodRef = new \ReflectionMethod(TargetClassA::class, 'doSomething');
         $methodStart = $methodRef->getStartLine();
@@ -114,10 +108,9 @@ final class CoversFilteringTest
         $info = self::makeTestInfo(CoveredByAttribute::class, 'testCoversMethod');
         $next = static fn(TestInfo $i): TestResult => new TestResult($i, Status::Passed);
 
-        // Act
         $result = $interceptor->runTest($info, $next);
 
-        // Assert — only lines within the method range should remain
+        // Only lines within the method range should remain.
         $coverage = $result->getAttribute(CoverageResult::class);
         Assert::instanceOf($coverage, CoverageResult::class);
         Assert::count($coverage->files, 1);
@@ -134,7 +127,6 @@ final class CoversFilteringTest
 
     public function noCoversAttributeKeepsAllCoverage(): void
     {
-        // Arrange
         $driver = new SpyDriver(new CoverageResult([
             '/src/Foo.php' => new FileCoverage('/src/Foo.php', [10 => new LineCoverage(10, LineStatus::Executed)]),
             '/src/Bar.php' => new FileCoverage('/src/Bar.php', [20 => new LineCoverage(20, LineStatus::Executed)]),
@@ -144,10 +136,9 @@ final class CoversFilteringTest
         $info = self::makeTestInfo(CoveredByAttribute::class, 'testNoCovers');
         $next = static fn(TestInfo $i): TestResult => new TestResult($i, Status::Passed);
 
-        // Act
         $result = $interceptor->runTest($info, $next);
 
-        // Assert — no filtering, both files kept
+        // No filtering, both files kept.
         $coverage = $result->getAttribute(CoverageResult::class);
         Assert::instanceOf($coverage, CoverageResult::class);
         Assert::count($coverage->files, 2);
