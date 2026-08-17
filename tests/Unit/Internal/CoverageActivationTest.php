@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Codecov\Unit\Internal;
 
 use Internal\Container\Container;
+use Internal\Path;
 use Testo\Application\Config\ApplicationConfig;
 use Testo\Assert;
 use Testo\Codecov\Config\CoverageLevel;
@@ -15,7 +16,9 @@ use Testo\Codecov\Internal\CoverageActivation;
 use Testo\Codecov\Internal\CoverageInput;
 use Testo\Codecov\Report\CloverReport;
 use Testo\Codecov\Report\CoverageReport;
+use Testo\Codecov\Result\CoverageResult;
 use Testo\Common\EventListenerCollector;
+use Testo\Core\Report\ReportInfo;
 use Testo\Expect;
 use Testo\Test;
 use Tests\Codecov\Stub\SpyDriver;
@@ -52,6 +55,24 @@ final class CoverageActivationTest
         $activation->contribute(CoverageLevel::Branch, [], [self::report()], CoverageMode::IfAvailable);
 
         Assert::same(self::read($activation, 'level'), CoverageLevel::Path);
+    }
+
+    /**
+     * A depth request on its own must not activate anything: no report, no driver resolution — only
+     * the level the activating instance will later collect at.
+     */
+    public function requestLevelRaisesDepthWithoutActivating(): void
+    {
+        $container = self::container();
+        $activation = new CoverageActivation($container);
+
+        $activation->requestLevel(CoverageLevel::Branch);
+        $activation->requestLevel(CoverageLevel::Line);
+
+        Assert::same(self::read($activation, 'level'), CoverageLevel::Branch);
+        Assert::array(self::read($activation, 'reports'))->hasCount(0);
+        Assert::false(self::read($activation, 'driverResolved'));
+        Assert::same($container->appConfigLookups, 0);
     }
 
     public function contributeKeepsStrongestMode(): void
@@ -156,7 +177,13 @@ final class CoverageActivationTest
     {
         return new class() implements CoverageReport {
             #[\Override]
-            public function generate(\Testo\Codecov\Result\CoverageResult $result): void {}
+            public function generate(CoverageResult $result): void {}
+
+            #[\Override]
+            public function info(): ReportInfo
+            {
+                return new ReportInfo('stub', 'Stub coverage', Path::create('/tmp/stub/index.xml'));
+            }
         };
     }
 
