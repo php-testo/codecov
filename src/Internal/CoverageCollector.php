@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Codecov\Internal;
 
+use Internal\Container\Attribute\ScopeShared;
 use Internal\Destroy\Destroyable;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Testo\Codecov\Result\CoverageResult;
@@ -21,6 +22,7 @@ use Testo\Event\Report\ReportFileGenerated;
  *
  * @internal
  */
+#[ScopeShared]
 final readonly class CoverageCollector implements Destroyable
 {
     private Cache $cache;
@@ -51,6 +53,18 @@ final readonly class CoverageCollector implements Destroyable
         $this->cache->value = $r;
     }
 
+    public function destroy(): void
+    {
+        $result = $this->sourceRoot !== null
+            ? $this->cache->value->withSourceRoot($this->sourceRoot)
+            : $this->cache->value;
+
+        foreach ($this->reports as $report) {
+            $report->generate($result);
+            $this->dispatcher?->dispatch(new ReportFileGenerated($report->info()));
+        }
+    }
+
     /**
      * Yields coverage from a test result and, for aggregate results (data providers,
      * inline tests), from every nested per-run result.
@@ -71,18 +85,6 @@ final readonly class CoverageCollector implements Destroyable
             foreach ($multiple->results as $nested) {
                 yield from self::collectCoverage($nested);
             }
-        }
-    }
-
-    public function destroy(): void
-    {
-        $result = $this->sourceRoot !== null
-            ? $this->cache->value->withSourceRoot($this->sourceRoot)
-            : $this->cache->value;
-
-        foreach ($this->reports as $report) {
-            $report->generate($result);
-            $this->dispatcher?->dispatch(new ReportFileGenerated($report->info()));
         }
     }
 }
